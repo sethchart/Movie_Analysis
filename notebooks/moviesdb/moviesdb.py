@@ -1,14 +1,14 @@
-import os
 import csv
-import sqlite3
 import gzip
-import numpy as np
 import pandas as pd
 from datetime import datetime
 
+
 class MoviesDb(object):
     
+    
     def __init__(self):
+        import sqlite3
         self.conn = sqlite3.connect('moviesdb/movies.sqlite')
         self.cur = self.conn.cursor()
  
@@ -42,6 +42,7 @@ class MoviesDb(object):
         df = pd.read_sql(query, self.conn)
         return df
 
+    
     def load_table_as_df(self, table_name):
         query = f"""
             SELECT *
@@ -70,7 +71,8 @@ class MoviesDb(object):
         self.cur.execute(query)
         
         
-class TitleBasicsParser(MoviesDb):
+class _TitleBasicsParser(MoviesDb):
+    
     
     def __init__(self):
         super().__init__()
@@ -171,7 +173,7 @@ class TitleBasicsParser(MoviesDb):
             self.write_row_to_table('genres', row_dict_genre)
 
 
-    def import_data(self):
+    def import_data_titles(self):
         self.create_table_titles()
         self.create_table_runtimes()
         self.create_table_genres()
@@ -182,7 +184,9 @@ class TitleBasicsParser(MoviesDb):
         self.conn.commit()
         self.close()
 
-class TitleRatingsParser(MoviesDb):
+        
+class _TitleRatingsParser(MoviesDb):
+    
     
     def __init__(self):
         super().__init__()
@@ -200,6 +204,7 @@ class TitleRatingsParser(MoviesDb):
         """
         self.create_table(table_name, columns_string)
     
+    
     def get_row_dict_rating(self, row):
         row_dict_rating = {'tconst': row['tconst'],
                           'averagerating': float(row['averagerating']),
@@ -207,11 +212,12 @@ class TitleRatingsParser(MoviesDb):
                          }
         return row_dict_rating
     
+    
     def import_row(self, row):
         row_dict_rating = self.get_row_dict_rating(row)
         self.write_row_to_table('ratings', row_dict_rating)
         
-    def import_data(self):
+    def import_data_ratings(self):
         self.create_table_ratings()
         with gzip.open(self.file_path, mode = 'rt') as file:
             reader = csv.DictReader(file)
@@ -219,15 +225,18 @@ class TitleRatingsParser(MoviesDb):
                 self.import_row(row)
         self.conn.commit()
         self.close()
+        
 
-class TitleBudgetsParser(MoviesDb):
+class _TitleBudgetsParser(MoviesDb):
     
     def __init__(self):
         super().__init__()
         self.file_path = '../zippedData/tn.movie_budgets.csv.gz'
         
+        
     def create_table_budgets(self):
-        column_string = """(
+        table_name = 'budgets'
+        columns_string = """(
             id INTEGER PRIMARY KEY,
             primary_title TEXT,
             start_year INTEGER,
@@ -236,33 +245,115 @@ class TitleBudgetsParser(MoviesDb):
             domestic_gross INTEGER,
             worldwide_gross INTEGER,
             FOREIGN KEY (primary_title, start_year) REFERENCES titles(primary_title, start_year)
-        )
+            )
         """
+        self.create_table(table_name, columns_string)
+
         
-    def get_row_dict_budgets(self, row):
+    def get_row_dict_budget(self, row):
         row_dict_budget = {'primary_title': row['movie'],
                            'start_year': datetime.strptime(row['release_date'], '%b %d, %Y').year,
                            'release_date': row['release_date'],
-                           'production_budget': int(budget_row_dict['production_budget'].replace('$','').replace(',','')),
-                           'domestic_gross': int(budget_row_dict['domestic_gross'].replace('$','').replace(',','')),
-                           'worldwide_gross': int(budget_row_dict['worldwide_gross'].replace('$','').replace(',',''))
+                           'production_budget': int(row['production_budget'].replace('$','').replace(',','')),
+                           'domestic_gross': int(row['domestic_gross'].replace('$','').replace(',','')),
+                           'worldwide_gross': int(row['worldwide_gross'].replace('$','').replace(',',''))
                           }
         return row_dict_budget
                            
+        
+    def import_row(self, row):
+        row_dict_budget = self.get_row_dict_budget(row)
+        self.write_row_to_table('budgets', row_dict_budget)
     
     
+    def import_data_budgets(self):
+        self.create_table_budgets()
+        with gzip.open(self.file_path, mode = 'rt') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                self.import_row(row)
+        self.conn.commit()
+        self.close()
     
     
+class _NameBasicsParser(MoviesDb):
+    
+    def __init__(self):
+        super().__init__()
+        self.file_path = '../zippedData/imdb.name.basics.csv.gz'
     
     
+    def create_table_names(self):
+        table_name = 'names'
+        columns_string = """(
+            nconst TEXT PRIMARY KEY,
+            primary_name TEXT
+            )
+        """
+        self.create_table(table_name, columns_string)
+        
+       
+    def get_row_dict_name(self,row):
+        row_dict_name = {'nconst': row['nconst'],
+                         'primary_name': row['primary_name']
+                        }
+        return row_dict_name
     
     
+    def import_row(self, row):
+        row_dict_name = self.get_row_dict_name(row)
+        self.write_row_to_table('names', row_dict_name)
+    
+    def import_data_names(self):
+        self.create_table_names()
+        with gzip.open(self.file_path, mode = 'rt') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                self.import_row(row)
+        self.conn.commit()
+        self.close()
+
+        
+class _PrincipalsParser(MoviesDb):
     
     
+    def __init__(self):
+        super().__init__()
+        self.file_path = '../zippedData/imdb.title.principals.csv.gz'
     
     
+    def create_table_principals(self):
+        table_name = 'principals'
+        columns_string = """(
+            tconst TEXT,
+            ordering INTEGER,
+            nconst TEXT,
+            category TEXT,
+            FOREIGN KEY('tconst') REFERENCES titles('tconst'),
+            FOREIGN KEY('nconst') REFERENCES names('nconst')
+            )
+        """
+        self.create_table(table_name, columns_string)
+    
+    def get_row_dict_principal(self, row):
+        row_dict_principal = {'tconst' : row['tconst'],
+                              'ordering': int(row['ordering']),
+                              'nconst': row['nconst'],
+                              'category': row['category']
+                             }
+        return row_dict_principal
     
     
+    def import_row(self, row):
+        row_dict_principal = self.get_row_dict_principal(row)
+        self.write_row_to_table('principals', row_dict_principal)
     
     
-    
+    def import_data_principals(self):
+        self.create_table_principals()
+        with gzip.open(self.file_path, mode = 'rt') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                self.import_row(row)
+        self.conn.commit()
+        self.close()
