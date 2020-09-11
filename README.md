@@ -6,7 +6,7 @@ key business metrics.
 ## Non-technical presentation
 For a non-technical presentation of our findings please see the slide deck and video presentation below.
 * <a href='./presentation/presentation.pdf'>Slide Deck</a>
-* <a href='./presentation/presentation.mp4'>Video Presentation</a>
+* <a href='https://youtu.be/ND-BXQqCP7c'>Video Presentation</a>
 
 ## Data cleaning
 Data was provided in the form of gzipped csv and tsv files which are located in the <a href='./zippedData'>zippedData</a> folder. We processed data from the following files:
