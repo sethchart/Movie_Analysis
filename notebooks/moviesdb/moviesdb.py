@@ -14,11 +14,13 @@ class MoviesDb(object):
  
 
     def close(self):
+        """Closes the cursor and connection created by initstantiating a MoviesDb object."""
         self.cur.close()
         self.conn.close()
 
     
     def list_tables(self):
+        """Queries the database and returns a list of table names."""
         query = """
             SELECT name 
             FROM sqlite_master
@@ -30,6 +32,13 @@ class MoviesDb(object):
     
 
     def list_column_names(self, table_name):
+        """Given the name of a table in the data base, this function returns a list of column names.
+        
+        Keyword Arguments:
+        table_name -- name of the table whoes columns will be listed.
+        
+        Use list_tables method to obtain a list of tables.
+        """
         query = f"""
             PRAGMA table_info({table_name});
             """
@@ -39,11 +48,26 @@ class MoviesDb(object):
     
 
     def load_query_as_df(self, query):
+        """Given a valid SQL query formated as a string, 
+        this function returns the output of the query as 
+        a pandas dataframe.
+        
+        Keyword Arguments:
+        query -- SQL query formated as a string.
+        """
         df = pd.read_sql(query, self.conn)
         return df
 
     
     def load_table_as_df(self, table_name):
+        """Given the name of a table in the database, 
+        this function loads the table as as pandas dataframe.
+        
+        Keyword Arguments:
+        table_name -- name of tables whoes contents will be returned as a dataframe
+        
+        Use the list_tables method to obtain a list of tables.
+        """
         query = f"""
             SELECT *
             FROM {table_name};
@@ -53,6 +77,16 @@ class MoviesDb(object):
 
 
     def create_table(self, table_name, columns_string):
+        """Given a table name and a tuple of column names with data types,
+        this function drops the table if it already exists and then 
+        creates a tale with the specified table name and column structure.
+        
+        Keyword arguments:
+        table_name -- name of the table to be created.
+        Ex: 'titles'
+        columns string -- a string containing column names and configuration.
+        Ex: "(tconst TEXT PRIMARY KEY, primary_title TEXT, start_year INTEGER)"
+        """
         drop_query = f"""
         DROP TABLE IF EXISTS {table_name};
         """
@@ -64,6 +98,16 @@ class MoviesDb(object):
         
         
     def write_row_to_table(self, table_name, row_dict):
+        """Given a table name and a dictionary with keys matching table column names 
+        and values complying with column datatypes, this function writes a new row 
+        to the specified table.
+        
+        Keyword Arguments:
+        table_name -- name of the table to write to.
+        row_dict -- dictionary containing row data.
+        
+        Use the list_tables method to obtain a list of tables.
+        """
         query = f"""
             INSERT INTO {table_name} ({', '.join(row_dict.keys())})
             VALUES {tuple(row_dict.values())};
